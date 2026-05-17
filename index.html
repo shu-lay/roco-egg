@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>洛克王国世界 - 精灵蛋查询器</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #f0f9f0 0%, #e8f5e9 50%, #f1f8e9 100%);
+      min-height: 100vh;
+      padding: 16px 12px 40px;
+      color: #2e3b2e;
+    }
+    .container { max-width: 600px; margin: 0 auto; }
+
+    /* 头部 */
+    .header {
+      text-align: center;
+      padding: 24px 0 20px;
+    }
+    .header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #2e7d32;
+      letter-spacing: 1px;
+    }
+    .header h1 span { color: #ff8f00; }
+    .header p {
+      font-size: 14px;
+      color: #558b2f;
+      margin-top: 6px;
+      opacity: 0.8;
+    }
+
+    /* 卡片 */
+    .card {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #33691e;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title .icon { font-size: 18px; }
+
+    /* 输入区 */
+    .input-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .input-group {
+      flex: 1;
+    }
+    .input-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .input-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #c8e6c9;
+      border-radius: 10px;
+      font-size: 16px; /* iOS avoids zoom */
+      background: #fafffa;
+      color: #333;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    .input-group input:focus {
+      border-color: #43a047;
+      box-shadow: 0 0 0 3px rgba(67,160,71,0.15);
+    }
+    .input-group input::placeholder { color: #aaa; font-size: 13px; }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #43a047, #2e7d32);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(46,125,50,0.25);
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-secondary {
+      background: #e8f5e9;
+      color: #2e7d32;
+      box-shadow: none;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+    .btn-secondary:active { background: #c8e6c9; }
+
+    .tips {
+      font-size: 12px;
+      color: #888;
+      margin-top: 10px;
+      line-height: 1.6;
+      padding: 10px 12px;
+      background: #f9fdf9;
+      border-radius: 8px;
+      border-left: 3px solid #a5d6a7;
+    }
+
+    /* 结果区 */
+    .result-count {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+    .result-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .pet-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 14px 16px;
+      border: 1px solid #e8f5e9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: box-shadow 0.2s;
+    }
+    .pet-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+    .pet-info { flex: 1; }
+    .pet-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1b3d1b;
+    }
+    .pet-name .sub {
+      font-size: 12px;
+      font-weight: 400;
+      color: #888;
+      margin-left: 6px;
+    }
+    .pet-meta {
+      font-size: 12px;
+      color: #777;
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+    .pet-meta .tag {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      margin-right: 4px;
+    }
+    .tag-light { background: #e8f5e9; color: #2e7d32; }
+    .tag-range { background: #fff3e0; color: #e65100; }
+
+    .pet-confidence {
+      text-align: right;
+      min-width: 52px;
+    }
+    .pet-confidence .num {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .pet-confidence .num.high { color: #2e7d32; }
+    .pet-confidence .num.mid { color: #ff8f00; }
+    .pet-confidence .num.low { color: #999; }
+    .pet-confidence .label {
+      font-size: 10px;
+      color: #999;
+    }
+
+    /* 重量分类参考表 */
+    .ref-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .ref-table th {
+      text-align: left;
+      padding: 8px 6px;
+      font-weight: 600;
+      color: #33691e;
+      border-bottom: 2px solid #c8e6c9;
+      font-size: 12px;
+    }
+    .ref-table td {
+      padding: 8px 6px;
+      border-bottom: 1px solid #e8f5e9;
+      color: #444;
+    }
+    .ref-table tr:last-child td { border-bottom: none; }
+    .ref-table .range-label {
+      font-weight: 600;
+      color: #2e7d32;
+      white-space: nowrap;
+    }
+    .ref-table .range-desc { font-size: 12px; color: #888; }
+
+    /* 特殊蛋标识说明 */
+    .badge-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .badge-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #555;
+      padding: 4px 10px;
+      background: #f5faf5;
+      border-radius: 6px;
+    }
+    .badge-dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .dot-perfect { background: linear-gradient(135deg, #ffd54f, #ff8f00); }
+    .dot-colorful { background: linear-gradient(135deg, #64b5f6, #81c784, #ffd54f); }
+    .dot-shiny { background: linear-gradient(135deg, #ce93d8, #42a5f5); }
+    .dot-story { background: #a5d6a7; }
+
+    .footer {
+      text-align: center;
+      padding: 20px 0 10px;
+      font-size: 11px;
+      color: #aaa;
+    }
+
+    /* 空状态 */
+    .empty-state {
+      text-align: center;
+      padding: 30px 0;
+      color: #999;
+    }
+    .empty-state .big-icon { font-size: 40px; margin-bottom: 10px; }
+    .empty-state p { font-size: 14px; }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 380px) {
+      .input-row { flex-direction: column; gap: 8px; }
+      .header h1 { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <!-- 头部 -->
+  <div class="header">
+    <h1>🥚 精灵蛋<span>查询器</span></h1>
+    <p>输入蛋的重量 & 长度，推测会孵出什么精灵</p>
+  </div>
+
+  <!-- 查询卡片 -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🔍</span> 输入精灵蛋数据</div>
+    <div class="input-row">
+      <div class="input-group">
+        <label>体重 (kg)</label>
+        <input type="number" id="weightInput" step="0.001" placeholder="例: 0.38" inputmode="decimal">
+      </div>
+      <div class="input-group">
+        <label>蛋的长度 (m)</label>
+        <input type="number" id="lengthInput" step="0.01" placeholder="例: 0.15" inputmode="decimal">
+      </div>
+    </div>
+    <button class="btn" onclick="search()">🔎 查询</button>
+    <button class="btn btn-secondary" onclick="clearAll()">清空</button>
+    <div class="tips">
+      💡 输入一个值即可模糊匹配；重量+长度都填更精确。
+    </div>
+  </div>
+
+  <!-- 特殊蛋标识说明 -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🏷️</span> 特殊蛋标识速查</div>
+    <div class="badge-list">
+      <span class="badge-item"><span class="badge-dot dot-perfect"></span> 完美蛋</span>
+      <span class="badge-item"><span class="badge-dot dot-colorful"></span> 炫彩蛋</span>
+      <span class="badge-item"><span class="badge-dot dot-shiny"></span> 异色蛋</span>
+      <span class="badge-item"><span class="badge-dot dot-story"></span> 剧情蛋</span>
+    </div>
+    <div style="font-size:12px;color:#888;margin-top:8px;">
+      ⚡ 有标识的蛋不需要查询，直接知道内容。本工具针对<strong>无标识蛋/未知蛋</strong>。
+    </div>
+  </div>
+
+  <!-- 结果卡片 -->
+  <div class="card" id="resultCard">
+    <div class="card-title"><span class="icon">📋</span> 匹配结果</div>
+    <div id="resultArea">
+      <div class="empty-state">
+        <div class="big-icon">🥚</div>
+        <p>输入数据后点击查询</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 重量参考表 -->
+  <div class="card">
+    <div class="card-title"><span class="icon">📊</span> 重量区间参考</div>
+    <table class="ref-table">
+      <thead><tr><th>重量范围</th><th>类型</th><th>常见精灵</th></tr></thead>
+      <tbody>
+        <tr><td class="range-label">0 ~ 1 kg</td><td>极轻蛋</td><td class="range-desc">小灵面 0.038kg、蒲公英、逗逗等</td></tr>
+        <tr><td class="range-label">1 ~ 1.8 kg</td><td>中等偏轻</td><td class="range-desc">毛毛、恶魔叮、奇丽草、格兰种子等</td></tr>
+        <tr><td class="range-label">1.8 ~ 4 kg</td><td>常见段</td><td class="range-desc">雪娃娃、灵狐、电咩咩、板板壳等</td></tr>
+        <tr><td class="range-label">4 ~ 14 kg</td><td>中型偏大</td><td class="range-desc">护主犬、白发懒人、伊雷龙、水母等</td></tr>
+        <tr><td class="range-label">14 kg 以上</td><td>大型/稀有</td><td class="range-desc">小独角兽、阿米亚特、恶魔狼、记忆石等</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    数据来源：玩家社区攻略 · 仅供参考 · 持续更新中
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+function calcConfidence(value, min, max) {
+  if (value == null || isNaN(value)) return -1;
+  if (value < min || value > max) return 0;
+  // 任何在范围内的值至少得 60 分，越接近中间值分越高
+  const mid = (min + max) / 2;
+  const halfRange = (max - min) / 2;
+  if (halfRange === 0) return 1;
+  const centerBonus = Math.max(0, 1 - Math.abs(value - mid) / halfRange);
+  return 0.6 + 0.4 * centerBonus;
+}
+
+function search() {
+  const w = document.getElementById('weightInput').value;
+  const l = document.getElementById('lengthInput').value;
+  const weight = w === '' ? null : parseFloat(w);
+  const length = l === '' ? null : parseFloat(l);
+
+  const resultDiv = document.getElementById('resultArea');
+
+  if (weight === null && length === null) {
+    resultDiv.innerHTML = `
+      <div class="empty-state">
+        <div class="big-icon">📝</div>
+        <p>请至少输入蛋的重量或长度</p>
+      </div>`;
+    return;
+  }
+
+  // 匹配计算
+  const scored = eggData.map(pet => {
+    const wScore = weight !== null ? calcConfidence(weight, pet.minWeight, pet.maxWeight) : -1;
+    const lScore = length !== null ? calcConfidence(length, pet.minLength, pet.maxLength) : -1;
+
+    // 综合得分：只计算提供了的维度
+    const scores = [];
+    if (wScore >= 0) scores.push(wScore);
+    if (lScore >= 0) scores.push(lScore);
+    const combined = scores.length > 0 ? scores.reduce((a,b) => a+b, 0) / scores.length : 0;
+
+    return { ...pet, wScore, lScore, combined };
+  });
+
+  // 过滤出匹配的（至少一个维度匹配）
+  const matched = scored.filter(p => p.combined > 0);
+
+  // 优先显示两个维度都匹配的，其次显示单维度匹配的
+  matched.sort((a, b) => {
+    const aBoth = a.wScore > 0 && a.lScore > 0;
+    const bBoth = b.wScore > 0 && b.lScore > 0;
+    if (aBoth && !bBoth) return -1;
+    if (!aBoth && bBoth) return 1;
+    if (aBoth && bBoth) return b.combined - a.combined;
+    // 两者都只有一个维度匹配时比哪个分数更高
+    return b.combined - a.combined;
+  });
+
+  // 渲染结果
+  if (matched.length === 0) {
+    resultDiv.innerHTML = `
+      <div class="empty-state">
+        <div class="big-icon">🤔</div>
+        <p>未找到匹配的精灵蛋</p>
+        <p style="font-size:12px;color:#aaa;margin-top:4px;">试试调整数值范围</p>
+      </div>`;
+    return;
+  }
+
+  const weightLabel = weight !== null ? weight + ' kg' : '—';
+  const lengthLabel = length !== null ? length + ' m' : '—';
+
+  let html = `<div class="result-count">找到 ${matched.length} 个匹配 · 蛋重 ${weightLabel} / 蛋长 ${lengthLabel}</div>`;
+  html += '<div class="result-list">';
+
+  matched.forEach(p => {
+    const pct = Math.round(p.combined * 100);
+    let cls = 'low';
+    if (pct >= 70) cls = 'high';
+    else if (pct >= 40) cls = 'mid';
+
+    const weightStr = p.minWeight + '~' + p.maxWeight + ' kg';
+    const lengthStr = p.minLength + '~' + p.maxLength + ' m';
+
+    html += `
+      <div class="pet-card">
+        <div class="pet-info">
+          <div class="pet-name">${p.name}</div>
+          <div class="pet-meta">
+            <span class="tag tag-light">${p.category}</span>
+            <br>
+            蛋重 ${weightStr} · 蛋长 ${lengthStr}
+          </div>
+        </div>
+        <div class="pet-confidence">
+          <div class="num ${cls}">${pct}%</div>
+          <div class="label">匹配度</div>
+        </div>
+      </div>`;
+  });
+
+  html += '</div>';
+  resultDiv.innerHTML = html;
+}
+
+function clearAll() {
+  document.getElementById('weightInput').value = '';
+  document.getElementById('lengthInput').value = '';
+  document.getElementById('resultArea').innerHTML = `
+    <div class="empty-state">
+      <div class="big-icon">🥚</div>
+      <p>输入数据后点击查询</p>
+    </div>`;
+}
+
+// 按回车触发查询
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('weightInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') search();
+  });
+  document.getElementById('lengthInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') search();
+  });
+});
+</script>
+</body>
+</html>
